@@ -54,6 +54,12 @@
     .toolbar {
       margin-top: 10px;
     }
+
+    #status {
+      font-size: 0.9em;
+      margin-top: 10px;
+      color: gray;
+    }
   </style>
 </head>
 <body>
@@ -74,75 +80,541 @@
       <strong id="emailDisplay">-</strong> 
       <button onclick="copyToClipboard()">📋 Copy</button>
     </p>
-    <button onclick="getInbox()">📥 Cek Inbox</button>
+    <button onclick="getInbox()">📥 Cek Inbox Sekarang</button>
+    <p id="status">🔄 Auto refresh setiap 10 detik</p>
   </div>
 
   <ul id="inboxList"></ul>
 
-<script>
-  let login = "", domain = "";
-  let intervalId = null;
+  <script>
+    let login = "", domain = "";
+    let intervalId = null;
 
-  function setEmail() {
-    login = document.getElementById("username").value.trim();
-    domain = document.getElementById("domain").value;
-    if (!login) {
-      alert("Username tidak boleh kosong!");
-      return;
+    function setEmail() {
+      login = document.getElementById("username").value.trim();
+      domain = document.getElementById("domain").value;
+      if (!login) {
+        alert("Username tidak boleh kosong!");
+        return;
+      }
+
+      const email = `${login}@${domain}`;
+      document.getElementById("emailDisplay").innerText = email;
+      document.getElementById("inboxList").innerHTML = "";
+
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(getInbox, 10000); // 10 detik
+      getInbox(); // load pertama langsung
     }
 
-    const email = `${login}@${domain}`;
-    document.getElementById("emailDisplay").innerText = email;
-    document.getElementById("inboxList").innerHTML = "";
-
-    // Aktifkan auto refresh tiap 10 detik
-    if (intervalId) clearInterval(intervalId); // bersihin interval lama dulu
-    intervalId = setInterval(getInbox, 10000); // 10 detik
-  }
-
-  function copyToClipboard() {
-    const email = document.getElementById("emailDisplay").innerText;
-    if (email === "-") {
-      alert("Belum ada email yang di-set.");
-      return;
+    function copyToClipboard() {
+      const email = document.getElementById("emailDisplay").innerText;
+      if (email === "-") {
+        alert("Belum ada email yang di-set.");
+        return;
+      }
+      navigator.clipboard.writeText(email)
+        .then(() => alert(`✅ Email "${email}" disalin ke clipboard!`))
+        .catch(err => alert("❌ Gagal menyalin."));
     }
-    navigator.clipboard.writeText(email)
-      .then(() => alert(`✅ Email "${email}" disalin ke clipboard!`))
-      .catch(err => alert("❌ Gagal menyalin."));
-  }
 
-  async function getInbox() {
-    if (!login || !domain) return;
-    const response = await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
-    const messages = await response.json();
-    const list = document.getElementById("inboxList");
-    list.innerHTML = "";
-    if (messages.length === 0) {
-      list.innerHTML = "<li>Belum ada email masuk.</li>";
-      return;
+    async function getInbox() {
+      if (!login || !domain) return;
+      const response = await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
+      const messages = await response.json();
+      const list = document.getElementById("inboxList");
+      list.innerHTML = "";
+      if (messages.length === 0) {
+        list.innerHTML = "<li>Belum ada email masuk.</li>";
+      } else {
+        messages.forEach(msg => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <strong>Dari:</strong> ${msg.from}<br>
+            <strong>Subjek:</strong> ${msg.subject}<br>
+            <button onclick="bukaEmail(${msg.id})">📬 Buka Email</button>
+          `;
+          list.appendChild(li);
+        });
+      }
+      document.getElementById("status").innerText = `🔄 Diperbarui: ${new Date().toLocaleTimeString()} (auto tiap 10 detik)`;
     }
-    messages.forEach(msg => {
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <strong>Dari:</strong> ${msg.from}<br>
-        <strong>Subjek:</strong> ${msg.subject}<br>
-        <button onclick="bukaEmail(${msg.id})">📬 Buka Email</button>
-      `;
-      list.appendChild(li);
-    });
-  }
 
-  async function bukaEmail(id) {
-    const res = await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
-    const data = await res.json();
-    alert(`📨 ${data.subject}\n\n${data.textBody || data.htmlBody || "Kosong."}`);
-  }
+    async function bukaEmail(id) {
+      const res = await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
+      const data = await res.json();
+      alert(`📨 ${data.subject}\n\n${data.textBody || data.htmlBody || "Kosong."}`);
+    }
 
-  function toggleDarkMode() {
-    document.body.classList.toggle("dark");
-  }
-</script>
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+  </script>
 
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Temp Mail Gratis</title>
+  <style>
+    :root {
+      --bg-color: #f5f5f5;
+      --text-color: #111;
+      --box-color: #fff;
+      --border-color: #ddd;
+    }
+
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #eee;
+      --box-color: #1e1e1e;
+      --border-color: #333;
+    }
+
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    input, button, select {
+      padding: 10px;
+      margin: 5px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      background-color: var(--box-color);
+      color: var(--text-color);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: var(--box-color);
+      margin: 10px auto;
+      padding: 10px;
+      max-width: 500px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      text-align: left;
+    }
+
+    .toolbar {
+      margin-top: 10px;
+    }
+
+    #status {
+      font-size: 0.9em;
+      margin-top: 10px;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📨 Temp Mail Gratis</h1>
+  <p>Masukkan username email:</p>
+  <input type="text" id="username" placeholder="contoh: akun123">
+  <select id="domain">
+    <option value="1secmail.com">@1secmail.com</option>
+    <option value="1secmail.org">@1secmail.org</option>
+    <option value="1secmail.net">@1secmail.net</option>
+  </select>
+  <button onclick="setEmail()">Set Email</button>
+  <button onclick="toggleDarkMode()">🌓 Dark Mode</button>
+
+  <div class="toolbar">
+    <p>Email Aktif: 
+      <strong id="emailDisplay">-</strong> 
+      <button onclick="copyToClipboard()">📋 Copy</button>
+    </p>
+    <button onclick="getInbox()">📥 Cek Inbox Sekarang</button>
+    <p id="status">🔄 Auto refresh setiap 10 detik</p>
+  </div>
+
+  <ul id="inboxList"></ul>
+
+  <script>
+    let login = "", domain = "";
+    let intervalId = null;
+
+    function setEmail() {
+      login = document.getElementById("username").value.trim();
+      domain = document.getElementById("domain").value;
+      if (!login) {
+        alert("Username tidak boleh kosong!");
+        return;
+      }
+
+      const email = `${login}@${domain}`;
+      document.getElementById("emailDisplay").innerText = email;
+      document.getElementById("inboxList").innerHTML = "";
+
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(getInbox, 10000); // 10 detik
+      getInbox(); // load pertama langsung
+    }
+
+    function copyToClipboard() {
+      const email = document.getElementById("emailDisplay").innerText;
+      if (email === "-") {
+        alert("Belum ada email yang di-set.");
+        return;
+      }
+      navigator.clipboard.writeText(email)
+        .then(() => alert(`✅ Email "${email}" disalin ke clipboard!`))
+        .catch(err => alert("❌ Gagal menyalin."));
+    }
+
+    async function getInbox() {
+      if (!login || !domain) return;
+      const response = await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
+      const messages = await response.json();
+      const list = document.getElementById("inboxList");
+      list.innerHTML = "";
+      if (messages.length === 0) {
+        list.innerHTML = "<li>Belum ada email masuk.</li>";
+      } else {
+        messages.forEach(msg => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <strong>Dari:</strong> ${msg.from}<br>
+            <strong>Subjek:</strong> ${msg.subject}<br>
+            <button onclick="bukaEmail(${msg.id})">📬 Buka Email</button>
+          `;
+          list.appendChild(li);
+        });
+      }
+      document.getElementById("status").innerText = `🔄 Diperbarui: ${new Date().toLocaleTimeString()} (auto tiap 10 detik)`;
+    }
+
+    async function bukaEmail(id) {
+      const res = await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
+      const data = await res.json();
+      alert(`📨 ${data.subject}\n\n${data.textBody || data.htmlBody || "Kosong."}`);
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+  </script>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Temp Mail Gratis</title>
+  <style>
+    :root {
+      --bg-color: #f5f5f5;
+      --text-color: #111;
+      --box-color: #fff;
+      --border-color: #ddd;
+    }
+
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #eee;
+      --box-color: #1e1e1e;
+      --border-color: #333;
+    }
+
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    input, button, select {
+      padding: 10px;
+      margin: 5px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      background-color: var(--box-color);
+      color: var(--text-color);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: var(--box-color);
+      margin: 10px auto;
+      padding: 10px;
+      max-width: 500px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      text-align: left;
+    }
+
+    .toolbar {
+      margin-top: 10px;
+    }
+
+    #status {
+      font-size: 0.9em;
+      margin-top: 10px;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📨 Temp Mail Gratis</h1>
+  <p>Masukkan username email:</p>
+  <input type="text" id="username" placeholder="contoh: akun123">
+  <select id="domain">
+    <option value="1secmail.com">@1secmail.com</option>
+    <option value="1secmail.org">@1secmail.org</option>
+    <option value="1secmail.net">@1secmail.net</option>
+  </select>
+  <button onclick="setEmail()">Set Email</button>
+  <button onclick="toggleDarkMode()">🌓 Dark Mode</button>
+
+  <div class="toolbar">
+    <p>Email Aktif: 
+      <strong id="emailDisplay">-</strong> 
+      <button onclick="copyToClipboard()">📋 Copy</button>
+    </p>
+    <button onclick="getInbox()">📥 Cek Inbox Sekarang</button>
+    <p id="status">🔄 Auto refresh setiap 10 detik</p>
+  </div>
+
+  <ul id="inboxList"></ul>
+
+  <script>
+    let login = "", domain = "";
+    let intervalId = null;
+
+    function setEmail() {
+      login = document.getElementById("username").value.trim();
+      domain = document.getElementById("domain").value;
+      if (!login) {
+        alert("Username tidak boleh kosong!");
+        return;
+      }
+
+      const email = `${login}@${domain}`;
+      document.getElementById("emailDisplay").innerText = email;
+      document.getElementById("inboxList").innerHTML = "";
+
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(getInbox, 10000); // 10 detik
+      getInbox(); // load pertama langsung
+    }
+
+    function copyToClipboard() {
+      const email = document.getElementById("emailDisplay").innerText;
+      if (email === "-") {
+        alert("Belum ada email yang di-set.");
+        return;
+      }
+      navigator.clipboard.writeText(email)
+        .then(() => alert(`✅ Email "${email}" disalin ke clipboard!`))
+        .catch(err => alert("❌ Gagal menyalin."));
+    }
+
+    async function getInbox() {
+      if (!login || !domain) return;
+      const response = await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
+      const messages = await response.json();
+      const list = document.getElementById("inboxList");
+      list.innerHTML = "";
+      if (messages.length === 0) {
+        list.innerHTML = "<li>Belum ada email masuk.</li>";
+      } else {
+        messages.forEach(msg => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <strong>Dari:</strong> ${msg.from}<br>
+            <strong>Subjek:</strong> ${msg.subject}<br>
+            <button onclick="bukaEmail(${msg.id})">📬 Buka Email</button>
+          `;
+          list.appendChild(li);
+        });
+      }
+      document.getElementById("status").innerText = `🔄 Diperbarui: ${new Date().toLocaleTimeString()} (auto tiap 10 detik)`;
+    }
+
+    async function bukaEmail(id) {
+      const res = await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
+      const data = await res.json();
+      alert(`📨 ${data.subject}\n\n${data.textBody || data.htmlBody || "Kosong."}`);
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+  </script>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Temp Mail Gratis</title>
+  <style>
+    :root {
+      --bg-color: #f5f5f5;
+      --text-color: #111;
+      --box-color: #fff;
+      --border-color: #ddd;
+    }
+
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #eee;
+      --box-color: #1e1e1e;
+      --border-color: #333;
+    }
+
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    input, button, select {
+      padding: 10px;
+      margin: 5px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      background-color: var(--box-color);
+      color: var(--text-color);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: var(--box-color);
+      margin: 10px auto;
+      padding: 10px;
+      max-width: 500px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      text-align: left;
+    }
+
+    .toolbar {
+      margin-top: 10px;
+    }
+
+    #status {
+      font-size: 0.9em;
+      margin-top: 10px;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📨 Temp Mail Gratis</h1>
+  <p>Masukkan username email:</p>
+  <input type="text" id="username" placeholder="contoh: akun123">
+  <select id="domain">
+    <option value="1secmail.com">@1secmail.com</option>
+    <option value="1secmail.org">@1secmail.org</option>
+    <option value="1secmail.net">@1secmail.net</option>
+  </select>
+  <button onclick="setEmail()">Set Email</button>
+  <button onclick="toggleDarkMode()">🌓 Dark Mode</button>
+
+  <div class="toolbar">
+    <p>Email Aktif: 
+      <strong id="emailDisplay">-</strong> 
+      <button onclick="copyToClipboard()">📋 Copy</button>
+    </p>
+    <button onclick="getInbox()">📥 Cek Inbox Sekarang</button>
+    <p id="status">🔄 Auto refresh setiap 10 detik</p>
+  </div>
+
+  <ul id="inboxList"></ul>
+
+  <script>
+    let login = "", domain = "";
+    let intervalId = null;
+
+    function setEmail() {
+      login = document.getElementById("username").value.trim();
+      domain = document.getElementById("domain").value;
+      if (!login) {
+        alert("Username tidak boleh kosong!");
+        return;
+      }
+
+      const email = `${login}@${domain}`;
+      document.getElementById("emailDisplay").innerText = email;
+      document.getElementById("inboxList").innerHTML = "";
+
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(getInbox, 10000); // 10 detik
+      getInbox(); // load pertama langsung
+    }
+
+    function copyToClipboard() {
+      const email = document.getElementById("emailDisplay").innerText;
+      if (email === "-") {
+        alert("Belum ada email yang di-set.");
+        return;
+      }
+      navigator.clipboard.writeText(email)
+        .then(() => alert(`✅ Email "${email}" disalin ke clipboard!`))
+        .catch(err => alert("❌ Gagal menyalin."));
+    }
+
+    async function getInbox() {
+      if (!login || !domain) return;
+      const response = await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
+      const messages = await response.json();
+      const list = document.getElementById("inboxList");
+      list.innerHTML = "";
+      if (messages.length === 0) {
+        list.innerHTML = "<li>Belum ada email masuk.</li>";
+      } else {
+        messages.forEach(msg => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <strong>Dari:</strong> ${msg.from}<br>
+            <strong>Subjek:</strong> ${msg.subject}<br>
+            <button onclick="bukaEmail(${msg.id})">📬 Buka Email</button>
+          `;
+          list.appendChild(li);
+        });
+      }
+      document.getElementById("status").innerText = `🔄 Diperbarui: ${new Date().toLocaleTimeString()} (auto tiap 10 detik)`;
+    }
+
+    async function bukaEmail(id) {
+      const res = await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
+      const data = await res.json();
+      alert(`📨 ${data.subject}\n\n${data.textBody || data.htmlBody || "Kosong."}`);
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+  </script>
 
 </body>
 </html>
