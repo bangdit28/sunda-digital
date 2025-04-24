@@ -64,14 +64,9 @@
 </head>
 <body>
 
-  <h1>📨 Sunda Digital Temporary Mail</h1>
+  <h1>📨 Temp Mail Sunda Digital</h1>
   <p>Masukkan username email:</p>
   <input type="text" id="username" placeholder="contoh: tasik321">
-  <select id="domain">
-    <option value="1secmail.com">@1secmail.com</option>
-    <option value="1secmail.org">@1secmail.org</option>
-    <option value="1secmail.net">@1secmail.net</option>
-  </select>
   <button onclick="setEmail()">Set Email</button>
   <button onclick="toggleDarkMode()">🌓 Dark Mode</button>
 
@@ -87,12 +82,11 @@
   <ul id="inboxList"></ul>
 
   <script>
-    let login = "", domain = "";
+    let login = "", domain = "tempmail.lol"; // Fix domain ke tempmail.lol
     let intervalId = null;
 
     function setEmail() {
       login = document.getElementById("username").value.trim();
-      domain = document.getElementById("domain").value;
       if (!login) {
         alert("Username tidak boleh kosong!");
         return;
@@ -102,6 +96,7 @@
       document.getElementById("emailDisplay").innerText = email;
       document.getElementById("inboxList").innerHTML = "";
 
+      // Aktifkan auto refresh tiap 10 detik
       if (intervalId) clearInterval(intervalId);
       intervalId = setInterval(getInbox, 10000); // 10 detik
       getInbox(); // load pertama langsung
@@ -120,7 +115,7 @@
 
     async function getInbox() {
       if (!login || !domain) return;
-      const response = await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`);
+      const response = await fetch(`https://api.tempmail.lol/mail/${login}`);
       const messages = await response.json();
       const list = document.getElementById("inboxList");
       list.innerHTML = "";
@@ -132,7 +127,7 @@
           li.innerHTML = `
             <strong>Dari:</strong> ${msg.from}<br>
             <strong>Subjek:</strong> ${msg.subject}<br>
-            <button onclick="bukaEmail(${msg.id})">📬 Buka Email</button>
+            <button onclick="bukaEmail('${msg.id}')">📬 Buka Email</button>
           `;
           list.appendChild(li);
         });
@@ -141,9 +136,9 @@
     }
 
     async function bukaEmail(id) {
-      const res = await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
+      const res = await fetch(`https://api.tempmail.lol/mail/${login}/${id}`);
       const data = await res.json();
-      alert(`📨 ${data.subject}\n\n${data.textBody || data.htmlBody || "Kosong."}`);
+      alert(`📨 ${data.subject}\n\n${data.textBody || "Kosong."}`);
     }
 
     function toggleDarkMode() {
